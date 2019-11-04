@@ -7,13 +7,13 @@ public class Player : MonoBehaviour
 {
 
 	public float _speed;
-
 	Vector2 _velocity;
+	MoveController _moverController;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+		_moverController = GetComponent<MoveController>();
     }
 
     // Update is called once per frame
@@ -38,6 +38,6 @@ public class Player : MonoBehaviour
 			vertical -= 1;
 		}
 		_velocity = new Vector2(horizontal, vertical);
-		transform.Translate(_velocity * _speed * Time.deltaTime);
+		_moverController.Move(_velocity * _speed * Time.deltaTime);
 	}
 }
