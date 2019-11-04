@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(MoveController))]
 public class Player : MonoBehaviour
 {
 
