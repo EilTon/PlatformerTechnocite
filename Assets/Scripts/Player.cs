@@ -12,7 +12,7 @@ public class Player : MonoBehaviour
 	public float _jumpHeight;
 	public bool _airControl;
 	public float _speedAirControl;
-
+	float _maxFallingSpeed; 
 	float _thresHold = 0.02f;
 	float _speed;
 	float _gravity;
@@ -27,6 +27,7 @@ public class Player : MonoBehaviour
 		_moverController = GetComponent<MoveController>();
 		_gravity = -(2 * _jumpHeight) / Mathf.Pow(_timeToMaxJump, 2);
 		_jumpForce = Mathf.Abs(_gravity) * _timeToMaxJump;
+		_maxFallingSpeed = -_jumpForce;
 	}
 
 	// Update is called once per frame
@@ -86,11 +87,11 @@ public class Player : MonoBehaviour
 		{
 			if (_velocity.x > _thresHold)
 			{
-				_velocity.x -= _acceleration * Time.deltaTime * airControl;
+				_velocity.x -= _acceleration * Time.deltaTime ;
 			}
 			else if (_velocity.x < -_thresHold)
 			{
-				_velocity.x += _acceleration * Time.deltaTime * airControl;
+				_velocity.x += _acceleration * Time.deltaTime ;
 			}
 			else
 			{
@@ -101,6 +102,10 @@ public class Player : MonoBehaviour
 
 
 		_velocity.y += _gravity * Time.deltaTime;
+		if(_velocity.y < _maxFallingSpeed)
+		{
+			_velocity.y = _maxFallingSpeed;
+		}
 		_moverController.Move(_velocity * Time.deltaTime);
 	}
 }
