@@ -7,9 +7,11 @@ public class Player : MonoBehaviour
 {
 
 	public float _speed;
-	public float _gravity;
-	public float _jumpForce;
+	public float _timeToMaxJump;
+	public float _jumpHeight;
 
+	float _gravity;
+	float _jumpForce;
 	Vector2 _velocity;
 	MoveController _moverController;
 
@@ -17,6 +19,8 @@ public class Player : MonoBehaviour
 	void Start()
 	{
 		_moverController = GetComponent<MoveController>();
+		_gravity = -(2 * _jumpHeight) / Mathf.Pow(_timeToMaxJump, 2);
+		_jumpForce = Mathf.Abs(_gravity) * _timeToMaxJump;
 	}
 
 	// Update is called once per frame
@@ -43,7 +47,7 @@ public class Player : MonoBehaviour
 			_velocity.y = _jumpForce;
 		}
 		_velocity.x = horizontal * _speed;
-		_velocity.y += _gravity * Time.deltaTime * -1f;
+		_velocity.y += _gravity * Time.deltaTime;
 		_moverController.Move(_velocity * Time.deltaTime);
 	}
 }

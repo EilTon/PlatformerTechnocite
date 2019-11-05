@@ -69,6 +69,7 @@ public class MoveController : MonoBehaviour
 			if (hit)
 			{
 				velocity.x = (hit.distance - _skinWidth) * direction;
+				distance = hit.distance - _skinWidth;
 				if (direction < 0)
 				{
 					_collisions.left = true;
@@ -98,7 +99,8 @@ public class MoveController : MonoBehaviour
 			if (hit)
 			{
 				velocity.y = (hit.distance - _skinWidth) * direction;
-				if(direction < 0)
+				distance = hit.distance - _skinWidth;
+				if (direction < 0)
 				{
 					_collisions.bottom = true;
 				}
