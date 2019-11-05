@@ -2,110 +2,105 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(MoveController))]
+[RequireComponent(typeof(MovementController))]
 public class Player : MonoBehaviour
 {
+	[Tooltip("Number of meter by second")]
+	public float maxSpeed;
+	public float timeToMaxSpeed;
+	public float acceleration;
+	float minSpeedThreshold;
 
-	public float _acceleration;
-	public float _maxSpeed;
-	public float _timeToMaxJump;
-	public float _jumpHeight;
-	public bool _airControl;
-	public float _speedAirControl;
-	float _maxFallingSpeed; 
-	float _thresHold = 0.02f;
-	float _speed;
-	float _gravity;
-	float _jumpForce;
-	Vector2 _velocity;
-	MoveController _moverController;
+	[Tooltip("Unity value of max jump height")]
+	public float jumpHeight;
+	[Tooltip("Time in seconds to reach the jump height")]
+	public float timeToMaxJump;
+	[Tooltip("Can i change direction in air?")]
+	[Range(0, 1)]
+	public float airControl;
+
+	float gravity;
+	float jumpForce;
+	float maxFallingSpeed;
+	int horizontal = 0;
+
+	Vector2 velocity = new Vector2();
+	MovementController movementController;
 
 	// Start is called before the first frame update
 	void Start()
 	{
-		_thresHold = _acceleration * Application.targetFrameRate * 2f;
-		_moverController = GetComponent<MoveController>();
-		_gravity = -(2 * _jumpHeight) / Mathf.Pow(_timeToMaxJump, 2);
-		_jumpForce = Mathf.Abs(_gravity) * _timeToMaxJump;
-		_maxFallingSpeed = -_jumpForce;
+		// Math calculation acceleration
+		// s = distance
+		// a = acceleration
+		// t = time
+		// s = 1 / 2 at²
+		// a = 2s / t²
+		acceleration = (2f * maxSpeed) / Mathf.Pow(timeToMaxSpeed, 2);
+
+		Debug.Log(acceleration);
+		minSpeedThreshold = acceleration / Application.targetFrameRate * 2f;
+		movementController = GetComponent<MovementController>();
+
+		// Math calculation for gravity and jumpForce
+		gravity = -(2 * jumpHeight) / Mathf.Pow(timeToMaxJump, 2);
+		jumpForce = Mathf.Abs(gravity) * timeToMaxJump;
+		maxFallingSpeed = -jumpForce;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
-		int horizontal = 0;
-		int vertical = 0;
-		float airControl = 1;
-		if (_moverController._collisions.bottom == true || _moverController._collisions.top == true)
-		{
-			_velocity.y = 0;
-		}
+		if (movementController.collisions.bottom || movementController.collisions.top)
+			velocity.y = 0;
 
-		//if (_moverController._collisions.bottom || _airControl)
-		//{
-			horizontal = 0;
-			if (Input.GetKey(KeyCode.Q))
-			{
-				horizontal -= 1;
-			}
-			if (Input.GetKey(KeyCode.D))
-			{
-				horizontal += 1;
-			}
-		//}
-		/*if (Input.GetKey(KeyCode.Q))
-		{
-			horizontal -= 1;
-		}
+		horizontal = 0;
+
 		if (Input.GetKey(KeyCode.D))
 		{
 			horizontal += 1;
-		}*/
-
-		if (Input.GetKeyDown(KeyCode.Space) && _moverController._collisions.bottom == true)
+		}
+		if (Input.GetKey(KeyCode.Q))
 		{
-			_velocity.y = _jumpForce;
+			horizontal -= 1;
 		}
 
-		_velocity.x += horizontal * _acceleration * Time.deltaTime;
-		if (_velocity.x > _maxSpeed)
+		if (Input.GetKeyDown(KeyCode.Space) && movementController.collisions.bottom)
 		{
-			_velocity.x = _maxSpeed;
+			Jump();
 		}
 
-		if (_velocity.x < -_maxSpeed)
+		float controlModifier = 1f;
+		if (!movementController.collisions.bottom)
 		{
-			_velocity.x = -_maxSpeed;
+			controlModifier = airControl;
 		}
 
-		if(!_moverController._collisions.bottom)
-		{
-			airControl = _speedAirControl;
-		}
+		velocity.x += horizontal * acceleration * controlModifier * Time.deltaTime;
+
+		if (Mathf.Abs(velocity.x) > maxSpeed)
+			velocity.x = maxSpeed * horizontal;
+
 
 		if (horizontal == 0)
 		{
-			if (_velocity.x > _thresHold)
-			{
-				_velocity.x -= _acceleration * Time.deltaTime ;
-			}
-			else if (_velocity.x < -_thresHold)
-			{
-				_velocity.x += _acceleration * Time.deltaTime ;
-			}
+			if (velocity.x > minSpeedThreshold)
+				velocity.x -= acceleration * Time.deltaTime;
+			else if (velocity.x < -minSpeedThreshold)
+				velocity.x += acceleration * Time.deltaTime;
 			else
-			{
-				_velocity.x = 0;
-			}
+				velocity.x = 0;
 		}
 
+		velocity.y += gravity * Time.deltaTime;
+		if (velocity.y < maxFallingSpeed)
+			velocity.y = maxFallingSpeed;
 
+		movementController.Move(velocity * Time.deltaTime);
+	}
 
-		_velocity.y += _gravity * Time.deltaTime;
-		if(_velocity.y < _maxFallingSpeed)
-		{
-			_velocity.y = _maxFallingSpeed;
-		}
-		_moverController.Move(_velocity * Time.deltaTime);
+	void Jump()
+	{
+		velocity.y = jumpForce;
 	}
 }
