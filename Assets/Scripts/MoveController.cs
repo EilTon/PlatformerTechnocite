@@ -8,6 +8,7 @@ public class MoveController : MonoBehaviour
 	public int _horizontalRayCount;
 	public int _verticalRayCount;
 	public LayerMask _layerObstacle;
+	public Collisions _collisions;
 
 	BoxCollider2D _boxCollider;
 	Vector2 _bottomLeft;
@@ -17,6 +18,17 @@ public class MoveController : MonoBehaviour
 	float _verticalRaySpacing;
 	float _horizontalRaySpacing;
 	float _skinWidth;
+
+	public struct Collisions
+	{
+		public bool top, left, bottom, right;
+
+		public void Reset()
+		{
+			top = bottom = left = right = false;
+		}
+	}
+
 
 	// Start is called before the first frame update
 	void Start()
@@ -28,9 +40,16 @@ public class MoveController : MonoBehaviour
 
 	public void Move(Vector2 velocity)
 	{
+		_collisions.Reset();
 		CalculateBound();
-		HorizontalMove(ref velocity);
-		VerticalMove(ref velocity);
+		if(velocity.x!=0)
+		{
+			HorizontalMove(ref velocity);
+		}
+		if(velocity.y!=0)
+		{
+			VerticalMove(ref velocity);
+		}
 		transform.Translate(velocity);
 	}
 
@@ -50,6 +69,14 @@ public class MoveController : MonoBehaviour
 			if (hit)
 			{
 				velocity.x = (hit.distance - _skinWidth) * direction;
+				if (direction < 0)
+				{
+					_collisions.left = true;
+				}
+				else if (direction > 0)
+				{
+					_collisions.right = true;
+				}
 			}
 		}
 	}
@@ -71,6 +98,14 @@ public class MoveController : MonoBehaviour
 			if (hit)
 			{
 				velocity.y = (hit.distance - _skinWidth) * direction;
+				if(direction < 0)
+				{
+					_collisions.bottom = true;
+				}
+				else if (direction>0)
+				{
+					_collisions.top = true;
+				}
 			}
 		}
 	}

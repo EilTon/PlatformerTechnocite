@@ -7,6 +7,8 @@ public class Player : MonoBehaviour
 {
 
 	public float _speed;
+	public float _gravity;
+
 	Vector2 _velocity;
 	MoveController _moverController;
 
@@ -29,15 +31,12 @@ public class Player : MonoBehaviour
 		{
 			horizontal += 1;
 		}
-		if (Input.GetKey(KeyCode.Z))
+		_velocity.x = horizontal * _speed;
+		if(_moverController._collisions.bottom == true)
 		{
-			vertical += 1;
+			_velocity.y = 0;
 		}
-		if (Input.GetKey(KeyCode.S))
-		{
-			vertical -= 1;
-		}
-		_velocity = new Vector2(horizontal, vertical);
-		_moverController.Move(_velocity * _speed * Time.deltaTime);
+		_velocity.y += _gravity * Time.deltaTime * 1f;
+		_moverController.Move(_velocity * Time.deltaTime);
 	}
 }
