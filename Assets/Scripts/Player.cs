@@ -8,7 +8,7 @@ public class Player : MonoBehaviour
 	[Tooltip("Number of meter by second")]
 	public float maxSpeed;
 	public float timeToMaxSpeed;
-	public float acceleration;
+	float acceleration;
 	float minSpeedThreshold;
 
 	[Tooltip("Unity value of max jump height")]
@@ -27,9 +27,9 @@ public class Player : MonoBehaviour
 	Vector2 velocity = new Vector2();
 	MovementController movementController;
 
-	// Start is called before the first frame update
-	void Start()
-	{
+    // Start is called before the first frame update
+    void Start()
+    {
 		// Math calculation acceleration
 		// s = distance
 		// a = acceleration
@@ -50,17 +50,17 @@ public class Player : MonoBehaviour
 
 	// Update is called once per frame
 	void Update()
-	{
-		if (movementController.collisions.bottom || movementController.collisions.top)
+    {
+		if(movementController.collisions.bottom || movementController.collisions.top)
 			velocity.y = 0;
 
 		horizontal = 0;
 
-		if (Input.GetKey(KeyCode.D))
+		if(Input.GetKey(KeyCode.D))
 		{
 			horizontal += 1;
 		}
-		if (Input.GetKey(KeyCode.Q))
+		if(Input.GetKey(KeyCode.Q))
 		{
 			horizontal -= 1;
 		}
@@ -78,22 +78,22 @@ public class Player : MonoBehaviour
 
 		velocity.x += horizontal * acceleration * controlModifier * Time.deltaTime;
 
-		if (Mathf.Abs(velocity.x) > maxSpeed)
+		if(Mathf.Abs(velocity.x) > maxSpeed)
 			velocity.x = maxSpeed * horizontal;
 
 
 		if (horizontal == 0)
 		{
-			if (velocity.x > minSpeedThreshold)
+			if(velocity.x > minSpeedThreshold)
 				velocity.x -= acceleration * Time.deltaTime;
-			else if (velocity.x < -minSpeedThreshold)
+			else if(velocity.x < -minSpeedThreshold)
 				velocity.x += acceleration * Time.deltaTime;
 			else
 				velocity.x = 0;
 		}
 
 		velocity.y += gravity * Time.deltaTime;
-		if (velocity.y < maxFallingSpeed)
+		if(velocity.y < maxFallingSpeed)
 			velocity.y = maxFallingSpeed;
 
 		movementController.Move(velocity * Time.deltaTime);
