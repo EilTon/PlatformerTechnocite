@@ -31,7 +31,7 @@ public class MovementController : MonoBehaviour
 
 	// Start is called before the first frame update
 	void Start()
-    {
+	{
 		boxCollider = GetComponent<BoxCollider2D>();
 		skinWidth = 1 / 16f;
 		CalculateRaySpacings();
@@ -39,7 +39,7 @@ public class MovementController : MonoBehaviour
 
 	// Update is called once per frame
 	void Update()
-    {
+	{
 	}
 
 	public void Move(Vector2 velocity)
@@ -64,7 +64,7 @@ public class MovementController : MonoBehaviour
 
 		Vector2 baseOrigin = direction == 1 ? bottomRight : bottomLeft;
 
-		for(int i = 0; i < verticalRayCount; i++)
+		for (int i = 0; i < verticalRayCount; i++)
 		{
 			Vector2 origin = baseOrigin + new Vector2(0, verticalRaySpacing * i);
 
@@ -79,13 +79,17 @@ public class MovementController : MonoBehaviour
 
 			if (hit)
 			{
-				velocity.x = (hit.distance - skinWidth) * direction;
-				distance = hit.distance - skinWidth;
+				if (!(hit.transform.gameObject.tag == "oneWayPlatform"))
+				{
+					velocity.x = (hit.distance - skinWidth) * direction;
+					distance = hit.distance - skinWidth;
 
-				if(direction < 0)
-					collisions.left = true;
-				else if(direction > 0)
-					collisions.right = true;
+					if (direction < 0)
+						collisions.left = true;
+					else if (direction > 0)
+						collisions.right = true;
+				}
+				
 			}
 		}
 	}
@@ -97,7 +101,7 @@ public class MovementController : MonoBehaviour
 
 		Vector2 baseOrigin = direction == 1 ? topLeft : bottomLeft;
 
-		for(int i = 0; i < horizontalRayCount; i++)
+		for (int i = 0; i < horizontalRayCount; i++)
 		{
 			Vector2 origin = baseOrigin + new Vector2(horizontalRaySpacing * i, 0);
 
@@ -109,20 +113,32 @@ public class MovementController : MonoBehaviour
 				layerObstacle
 				);
 
-			if(hit)
+			if (hit)
 			{
 				// Je ne suis PAS en train de passer à travers un layer onewayplatform
 				//   donc c'est un obstacle
 				// XXX detecter en utilisant tag ou getcomponent
-				if(!(layerOneWayPlatform == (layerOneWayPlatform | (1 << hit.transform.gameObject.layer)) &&
+
+				/*if (!(layerOneWayPlatform == (layerOneWayPlatform | (1 << hit.transform.gameObject.layer)) &&
 					 direction > 0))
 				{
 					velocity.y = (hit.distance - skinWidth) * direction;
 					distance = hit.distance - skinWidth;
 
-					if(direction < 0)
+					if (direction < 0)
 						collisions.bottom = true;
-					else if(direction > 0)
+					else if (direction > 0)
+						collisions.top = true;
+				}*/
+
+				if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
+				{
+					velocity.y = (hit.distance - skinWidth) * direction;
+					distance = hit.distance - skinWidth;
+
+					if (direction < 0)
+						collisions.bottom = true;
+					else if (direction > 0)
 						collisions.top = true;
 				}
 			}

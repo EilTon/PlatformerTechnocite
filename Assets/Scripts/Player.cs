@@ -10,6 +10,9 @@ public class Player : MonoBehaviour
 	public float timeToMaxSpeed;
 	float acceleration;
 	float minSpeedThreshold;
+	int jumpCount;
+	public int maxJump;
+	Animator animator;
 
 	[Tooltip("Unity value of max jump height")]
 	public float jumpHeight;
@@ -27,9 +30,9 @@ public class Player : MonoBehaviour
 	Vector2 velocity = new Vector2();
 	MovementController movementController;
 
-    // Start is called before the first frame update
-    void Start()
-    {
+	// Start is called before the first frame update
+	void Start()
+	{
 		// Math calculation acceleration
 		// s = distance
 		// a = acceleration
@@ -37,7 +40,7 @@ public class Player : MonoBehaviour
 		// s = 1 / 2 at²
 		// a = 2s / t²
 		acceleration = (2f * maxSpeed) / Mathf.Pow(timeToMaxSpeed, 2);
-
+		animator = GetComponent<Animator>();
 		Debug.Log(acceleration);
 		minSpeedThreshold = acceleration / Application.targetFrameRate * 2f;
 		movementController = GetComponent<MovementController>();
@@ -50,25 +53,23 @@ public class Player : MonoBehaviour
 
 	// Update is called once per frame
 	void Update()
-    {
-		if(movementController.collisions.bottom || movementController.collisions.top)
+	{
+		if (movementController.collisions.bottom || movementController.collisions.top)
 			velocity.y = 0;
 
 		horizontal = 0;
 
-		if(Input.GetKey(KeyCode.D))
+		if (Input.GetKey(KeyCode.D))
 		{
 			horizontal += 1;
 		}
-		if(Input.GetKey(KeyCode.Q))
+
+		if (Input.GetKey(KeyCode.Q))
 		{
 			horizontal -= 1;
 		}
-
-		if (Input.GetKeyDown(KeyCode.Space) && movementController.collisions.bottom)
-		{
-			Jump();
-		}
+		AnimationFrog();
+		UpdateJump();
 
 		float controlModifier = 1f;
 		if (!movementController.collisions.bottom)
@@ -78,22 +79,22 @@ public class Player : MonoBehaviour
 
 		velocity.x += horizontal * acceleration * controlModifier * Time.deltaTime;
 
-		if(Mathf.Abs(velocity.x) > maxSpeed)
+		if (Mathf.Abs(velocity.x) > maxSpeed)
 			velocity.x = maxSpeed * horizontal;
 
 
 		if (horizontal == 0)
 		{
-			if(velocity.x > minSpeedThreshold)
+			if (velocity.x > minSpeedThreshold)
 				velocity.x -= acceleration * Time.deltaTime;
-			else if(velocity.x < -minSpeedThreshold)
+			else if (velocity.x < -minSpeedThreshold)
 				velocity.x += acceleration * Time.deltaTime;
 			else
 				velocity.x = 0;
 		}
 
 		velocity.y += gravity * Time.deltaTime;
-		if(velocity.y < maxFallingSpeed)
+		if (velocity.y < maxFallingSpeed)
 			velocity.y = maxFallingSpeed;
 
 		movementController.Move(velocity * Time.deltaTime);
@@ -101,6 +102,68 @@ public class Player : MonoBehaviour
 
 	void Jump()
 	{
-		velocity.y = jumpForce;
+		velocity.y += jumpForce;
+		jumpCount++;
+	}
+
+	void UpdateJump()
+	{
+		if (movementController.collisions.bottom)
+		{
+			jumpCount = 0;
+		}
+
+		if (Input.GetKeyDown(KeyCode.Space) && jumpCount <= maxJump)
+		{
+			animator.SetBool("isJumping", true);
+			Jump();
+		}
+	}
+
+	void AnimationFrog()
+	{
+
+		if(velocity.y <= timeToMaxJump && movementController.collisions.bottom!= true)
+		{
+			animator.Play("FrogFall");
+		}
+
+		else if(velocity.y!=0 && jumpCount>1)
+		{
+			animator.Play("FrogDoubleJump");
+		}
+
+		else if (velocity.x != 0 && velocity.y != 0)
+		{
+			PlayAnimationJumpOrRun("FrogJump");
+		}
+
+		else if (velocity.x != 0)
+		{
+			PlayAnimationJumpOrRun("FrogRun");
+		}
+
+		else if (velocity.y != 0)
+		{
+			animator.Play("FrogJump");
+		}
+
+		else
+		{
+			animator.Play("FrogIdle");
+		}
+	}
+
+	void PlayAnimationJumpOrRun(string AnimationName)
+	{
+		if (velocity.x > 0)
+		{
+			transform.localScale = new Vector3(1, 1, 1);
+		}
+		else if (velocity.x < 0)
+		{
+			transform.localScale = new Vector3(-1, 1, 1);
+		}
+		animator.Play(AnimationName);
 	}
 }
