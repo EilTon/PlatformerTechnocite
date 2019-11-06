@@ -104,6 +104,12 @@ public class Player : MonoBehaviour
 	{
 		velocity.y += jumpForce;
 		jumpCount++;
+		if (movementController.collisions.left == true || movementController.collisions.right == true)
+		{
+			jumpCount = 0;
+			velocity.y = jumpForce;
+		}
+		
 	}
 
 	void UpdateJump()
@@ -115,32 +121,36 @@ public class Player : MonoBehaviour
 
 		if (Input.GetKeyDown(KeyCode.Space) && jumpCount <= maxJump)
 		{
-			animator.SetBool("isJumping", true);
 			Jump();
 		}
+
+		
 	}
 
 	void AnimationFrog()
 	{
-
-		if(velocity.y <= timeToMaxJump && movementController.collisions.bottom!= true)
+		if(movementController.collisions.left == true || movementController.collisions.right == true)
 		{
-			animator.Play("FrogFall");
+			PlayAnimation("FrogWallJump");
+		}
+		else if(velocity.y <= timeToMaxJump && movementController.collisions.bottom!= true)
+		{
+			PlayAnimation("FrogFall");
 		}
 
 		else if(velocity.y!=0 && jumpCount>1)
 		{
-			animator.Play("FrogDoubleJump");
+			PlayAnimation("FrogDoubleJump");
 		}
 
 		else if (velocity.x != 0 && velocity.y != 0)
 		{
-			PlayAnimationJumpOrRun("FrogJump");
+			PlayAnimation("FrogJump");
 		}
 
 		else if (velocity.x != 0)
 		{
-			PlayAnimationJumpOrRun("FrogRun");
+			PlayAnimation("FrogRun");
 		}
 
 		else if (velocity.y != 0)
@@ -154,7 +164,7 @@ public class Player : MonoBehaviour
 		}
 	}
 
-	void PlayAnimationJumpOrRun(string AnimationName)
+	void PlayAnimation(string AnimationName)
 	{
 		if (velocity.x > 0)
 		{

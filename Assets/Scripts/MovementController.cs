@@ -94,6 +94,9 @@ public class MovementController : MonoBehaviour
 		}
 	}
 
+	
+
+
 	void VerticalMove(ref Vector2 velocity)
 	{
 		float direction = Mathf.Sign(velocity.y);
@@ -131,7 +134,14 @@ public class MovementController : MonoBehaviour
 						collisions.top = true;
 				}*/
 
-				if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
+
+				if (hit.transform.gameObject.tag == "oneWayPlatform"  && Input.GetKeyDown(KeyCode.S))
+				{
+					velocity.y = -(hit.distance - skinWidth) * direction;
+					distance = hit.distance - skinWidth;
+				}
+
+				else if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
 				{
 					velocity.y = (hit.distance - skinWidth) * direction;
 					distance = hit.distance - skinWidth;
