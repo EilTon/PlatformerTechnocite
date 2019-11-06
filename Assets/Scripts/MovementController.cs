@@ -14,6 +14,7 @@ public class MovementController : MonoBehaviour
 	float skinWidth;
 
 	BoxCollider2D boxCollider;
+	Collider2D boxTempCollider;
 	Vector2 bottomLeft, bottomRight, topLeft, topRight;
 
 	float verticalRaySpacing;
@@ -89,12 +90,10 @@ public class MovementController : MonoBehaviour
 					else if (direction > 0)
 						collisions.right = true;
 				}
-				
+
 			}
 		}
 	}
-
-	
 
 
 	void VerticalMove(ref Vector2 velocity)
@@ -135,22 +134,28 @@ public class MovementController : MonoBehaviour
 				}*/
 
 
-				if (hit.transform.gameObject.tag == "oneWayPlatform"  && Input.GetKeyDown(KeyCode.S))
+				if (Input.GetKey(KeyCode.S) && hit.transform.gameObject.tag == "oneWayPlatform")
 				{
-					velocity.y = -(hit.distance - skinWidth) * direction;
-					distance = hit.distance - skinWidth;
+					
+					hit.collider.enabled = false;
+					boxTempCollider = hit.collider;
 				}
 
-				else if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
+				if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
 				{
 					velocity.y = (hit.distance - skinWidth) * direction;
 					distance = hit.distance - skinWidth;
-
+					
 					if (direction < 0)
 						collisions.bottom = true;
 					else if (direction > 0)
 						collisions.top = true;
 				}
+				if(hit.transform.gameObject.tag == "obstacle")
+				{
+					boxTempCollider.enabled = true;
+				}
+				
 			}
 		}
 	}
