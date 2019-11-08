@@ -64,7 +64,7 @@ public class Player : MonoBehaviour
 			horizontal += 1;
 		}
 
-		if (Input.GetKey(KeyCode.Q)&& freeze == false)
+		if (Input.GetKey(KeyCode.Q) && freeze == false)
 		{
 			horizontal -= 1;
 		}
@@ -184,6 +184,7 @@ public class Player : MonoBehaviour
 	private void OnTriggerEnter2D(Collider2D collision)
 	{
 		Enemy enemy = collision.gameObject.GetComponent<Enemy>();
+
 		if (enemy != null)
 		{
 			hitEnemy = StartCoroutine(HitEnemyCoroutine());
@@ -194,9 +195,9 @@ public class Player : MonoBehaviour
 
 	IEnumerator HitEnemyCoroutine()
 	{
+
 		freeze = true;
 		animator.Play("FrogHit");
-		movementController.Move(-velocity * Time.deltaTime);
 		yield return new WaitForSeconds(2); //animationsTimes.GetTime("FrogHit")
 		SpawnPlayer spawnPlayer = FindObjectOfType<SpawnPlayer>();
 		spawnPlayer.Spawn();
@@ -205,4 +206,6 @@ public class Player : MonoBehaviour
 		freeze = false;
 		yield return null;
 	}
+
+	
 }
