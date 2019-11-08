@@ -84,9 +84,7 @@ public class Player : MonoBehaviour
 		UpdateGravity();
 		UpdateJump();
 		UpdateFlip();
-
 		movementController.Move(velocity * Time.deltaTime);
-
 		UpdateAnimation();
 	}
 
