@@ -7,67 +7,107 @@ public class Enemy : MonoBehaviour
 {
 	public float speed;
 	public bool facingRight;
-	public float stopTime;
-	Vector2 velocity = new Vector2();
+	public float stopTimeOnFlip;
+	public float pushBackForce;
+	[HideInInspector]
+	public bool dangerous;
+
 	MovementController movementController;
 	SpriteRenderer spriteRenderer;
-	Coroutine FlipCoro;
-	Animator animator;
+	Vector2 velocity = new Vector2();
+	Coroutine flipCoroutine;
+	Animator anim;
+	AnimationsTimes animationTimes;
 
-	private void Start()
+	// Start is called before the first frame update
+	void Start()
 	{
-		animator = GetComponent<Animator>();
+		dangerous = true;
 		movementController = GetComponent<MovementController>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
-		velocity.x = speed;
+		anim = GetComponent<Animator>();
+		animationTimes = GetComponent<AnimationsTimes>();
+		StartFacing();
 	}
 
-	private void Update()
+	// Update is called once per frame
+	void Update()
 	{
 		UpdateMove();
 		UpdateFlip();
 	}
 
-	private void UpdateMove()
+	void UpdateMove()
 	{
-
 		movementController.Move(velocity * Time.deltaTime);
 	}
 
-	private void UpdateFlip()
+	void UpdateFlip()
 	{
-		if ((velocity.x > 0 && movementController.collisions.right) || (velocity.x < 0 && movementController.collisions.left))
+		// Si on se déplace vers la droite, et touche un mur vers la droite OU BIEN
+		// si on se déplace vers la gauche, et touche un mur vers la gauche
+		if ((velocity.x > 0 && movementController.collisions.right) ||
+		   (velocity.x < 0 && movementController.collisions.left))
 		{
-			//spriteRenderer.flipX = !spriteRenderer.flipX;
-			//velocity.x = (velocity.x * -1);
-			if (FlipCoro == null)
-			{
-				FlipCoro = StartCoroutine(FlipCoroutine());
-			}
+			Flip();
 		}
+		// Si j'atteind un ravin, je flip
 		else if (movementController.collisions.frontPit)
 		{
-			if (FlipCoro == null)
-			{
-				FlipCoro = StartCoroutine(FlipCoroutine());
-			}
-			//movementController.collisions.frontPit = false;
-			//spriteRenderer.flipX = !spriteRenderer.flipX;
-			//velocity.x = (velocity.x * -1);
+			Flip();
 		}
+	}
+
+	void StartFacing()
+	{
+		if (facingRight)
+		{
+			velocity.x = speed;
+		}
+		else
+		{
+			velocity.x = -speed;
+			spriteRenderer.flipX = !spriteRenderer.flipX;
+		}
+	}
+
+	/// <summary>
+	/// Retourne le sprite et la velocity
+	/// </summary>
+	void Flip()
+	{
+		if (flipCoroutine == null)
+			flipCoroutine = StartCoroutine(FlipCoroutine());
 	}
 
 	IEnumerator FlipCoroutine()
 	{
 		float actualVelocity = velocity.x;
 		velocity.x = 0;
-		animator.Play("ChickenIdle");
-		yield return new WaitForSeconds(stopTime);
-		movementController.collisions.frontPit = false;
+		anim.Play("ChickenIdle");
+		yield return new WaitForSeconds(stopTimeOnFlip);
+		anim.Play("ChickenRun");
 		spriteRenderer.flipX = !spriteRenderer.flipX;
-		velocity.x = (actualVelocity * -1);
-		animator.Play("ChickenRun");
-		FlipCoro = null;
+		velocity.x = actualVelocity * -1f;
+		flipCoroutine = null;
+	}
 
+	Coroutine dieCoroutine;
+	public void Die()
+	{
+		if (dieCoroutine == null)
+			dieCoroutine = StartCoroutine(DieCoroutine());
+	}
+
+	IEnumerator DieCoroutine()
+	{
+		dangerous = false;
+		anim.Play("ChickenHit");
+		velocity.x = 0;
+		// Wait for the time of the FrogHit animation to be finished
+		yield return new WaitForSeconds(0.25f);
+		Destroy(gameObject);
+		dieCoroutine = null;
+		//yield return null;
 	}
 }

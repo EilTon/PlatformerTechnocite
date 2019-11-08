@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8937129261392815114}
   - component: {fileID: 7538071934776573833}
+  - component: {fileID: 2788402072457782353}
   m_Layer: 8
   m_Name: hitJump
   m_TagString: Untagged
@@ -57,6 +58,18 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 0.31451553}
   m_EdgeRadius: 0
+--- !u!114 &2788402072457782353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8863014476420191569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf627bbaab8458641aa0b771265ea039, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &9061387483792185485
 GameObject:
   m_ObjectHideFlags: 0
@@ -188,9 +201,6 @@ MonoBehaviour:
   layerObstacle:
     serializedVersion: 2
     m_Bits: 512
-  layerOneWayPlatform:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!114 &3627327734871821154
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,10 +215,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSpeed: 10
   timeToMaxSpeed: 0.3
-  maxJump: 1
+  maxAirJump: 1
   jumpHeight: 2
   timeToMaxJump: 0.3
   airControl: 0.25
+  animationByParameters: 0
+  _freeze: 0
 --- !u!50 &152382302
 Rigidbody2D:
   serializedVersion: 4

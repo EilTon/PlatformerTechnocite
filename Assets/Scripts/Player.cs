@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MovementController))]
+[RequireComponent(typeof(AnimationsTimes))]
 public class Player : MonoBehaviour
 {
+	delegate void MyDelegate();
+	MyDelegate UpdateAnimation;
+
+	[Header("Run speed")]
 	[Tooltip("Number of meter by second")]
 	public float maxSpeed;
 	public float timeToMaxSpeed;
-	float acceleration;
-	float minSpeedThreshold;
-	int jumpCount;
-	public int maxJump;
-	Animator animator;
-	Coroutine hitEnemy;
+
+	[Header("Jump")]
+	public uint maxAirJump;
 	[Tooltip("Unity value of max jump height")]
 	public float jumpHeight;
 	[Tooltip("Time in seconds to reach the jump height")]
@@ -21,15 +23,31 @@ public class Player : MonoBehaviour
 	[Tooltip("Can i change direction in air?")]
 	[Range(0, 1)]
 	public float airControl;
-	bool freeze = false;
+
+	[Header("Other")]
+	public bool animationByParameters;
+
+	int doubleJumpCount;
+
+	float acceleration;
+	float minSpeedThreshold;
+
 	float gravity;
 	float jumpForce;
 	float maxFallingSpeed;
 	int horizontal = 0;
-	AnimationsTimes animationsTimes;
+	bool doubleJumping;
+
+	Animator anim;
+	SpriteRenderer spriteRenderer;
 
 	Vector2 velocity = new Vector2();
 	MovementController movementController;
+	AnimationsTimes animationTimes;
+
+
+	public bool freeze { get { return _freeze; } }
+	public bool _freeze;
 
 	// Start is called before the first frame update
 	void Start()
@@ -41,35 +59,58 @@ public class Player : MonoBehaviour
 		// s = 1 / 2 at²
 		// a = 2s / t²
 		acceleration = (2f * maxSpeed) / Mathf.Pow(timeToMaxSpeed, 2);
-		animator = GetComponent<Animator>();
+
 		minSpeedThreshold = acceleration / Application.targetFrameRate * 2f;
 		movementController = GetComponent<MovementController>();
-		animationsTimes = GetComponent<AnimationsTimes>();
+		anim = GetComponent<Animator>();
+		spriteRenderer = GetComponent<SpriteRenderer>();
+		animationTimes = GetComponent<AnimationsTimes>();
+
 		// Math calculation for gravity and jumpForce
 		gravity = -(2 * jumpHeight) / Mathf.Pow(timeToMaxJump, 2);
 		jumpForce = Mathf.Abs(gravity) * timeToMaxJump;
 		maxFallingSpeed = -jumpForce;
+
+		if (animationByParameters)
+			UpdateAnimation = UpdateAnimationByParameters;
+		else
+			UpdateAnimation = UpdateAnimationByCode;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
-		if (movementController.collisions.bottom || movementController.collisions.top)
-			velocity.y = 0;
+		UpdateHorizontalControl();
+		UpdateGravity();
+		UpdateJump();
+		UpdateFlip();
+
+		movementController.Move(velocity * Time.deltaTime);
+
+		UpdateAnimation();
+	}
+
+	void UpdateHorizontalControl()
+	{
+		// Reset velocity at start of frame is hitting wall
+		// Then I will add one frame of velocity to stay sticking on wall for example
+		// But I want my speed to stop when reaching wall
+		if ((velocity.x > 0 && movementController.collisions.right) ||
+			(velocity.x < 0 && movementController.collisions.left))
+		{
+			velocity.x = 0;
+		}
 
 		horizontal = 0;
 
-		if (Input.GetKey(KeyCode.D) && freeze == false)
+		if (Input.GetKey(KeyCode.D) && !_freeze)
 		{
 			horizontal += 1;
 		}
-
-		if (Input.GetKey(KeyCode.Q) && freeze == false)
+		if (Input.GetKey(KeyCode.Q) && !_freeze)
 		{
 			horizontal -= 1;
 		}
-		AnimationFrog();
-		UpdateJump();
 
 		float controlModifier = 1f;
 		if (!movementController.collisions.bottom)
@@ -92,94 +133,156 @@ public class Player : MonoBehaviour
 			else
 				velocity.x = 0;
 		}
-
-		velocity.y += gravity * Time.deltaTime;
-		if (velocity.y < maxFallingSpeed)
-			velocity.y = maxFallingSpeed;
-
-		movementController.Move(velocity * Time.deltaTime);
 	}
 
-	void Jump()
+	void UpdateGravity()
 	{
-		velocity.y += jumpForce;
-		jumpCount++;
-		if (movementController.collisions.left == true || movementController.collisions.right == true)
+		if (movementController.collisions.bottom || movementController.collisions.top)
+			velocity.y = 0;
+
+
+		if ((movementController.collisions.left || movementController.collisions.right) && velocity.y < 0)
 		{
-			jumpCount = 0;
-			velocity.y = jumpForce;
+			velocity.y += gravity * Time.deltaTime / 3f;
+		}
+		else
+		{
+			velocity.y += gravity * Time.deltaTime;
 		}
 
+		if (velocity.y < maxFallingSpeed)
+		{
+			velocity.y = maxFallingSpeed;
+		}
+	}
+
+	void UpdateAnimationByCode()
+	{
+		if (_freeze)
+			return;
+
+		// Au sol
+		if (movementController.collisions.bottom)
+		{
+			if (horizontal == 0)
+				anim.Play("FrogIdle");
+			else if (horizontal != 0)
+				anim.Play("FrogRun");
+		}
+		// En l'air
+		else
+		{
+			if (!doubleJumping)
+			{
+				if (movementController.collisions.left ||
+					movementController.collisions.right)
+					anim.Play("FrogWallJump");
+				else if (velocity.y > 0)
+					anim.Play("FrogJump");
+				else if (velocity.y < 0)
+					anim.Play("FrogFall");
+			}
+		}
+	}
+
+	void UpdateAnimationByParameters()
+	{
+		int vertical = (int)Mathf.Sign(velocity.y);
+		if (movementController.collisions.bottom)
+			vertical = 0;
+
+		anim.SetInteger("horizontal", horizontal);
+		anim.SetInteger("vertical", vertical);
+		anim.SetBool("grounded", movementController.collisions.bottom);
+		anim.SetBool("doubleJumping", doubleJumping);
+	}
+
+	void UpdateFlip()
+	{
+		if (_freeze)
+			return;
+
+		if (velocity.x > 0)
+		{
+			// regarde vers la droite
+			spriteRenderer.flipX = false;
+		}
+		else if (velocity.x < 0)
+		{
+			// regarde vers la gauche
+			spriteRenderer.flipX = true;
+		}
 	}
 
 	void UpdateJump()
 	{
-		if (movementController.collisions.bottom || movementController.collisions.left || movementController.collisions.right)
+		if (movementController.collisions.bottom)
 		{
-			jumpCount = 0;
+			doubleJumpCount = 0;
+			doubleJumping = false;
 		}
 
-		if (Input.GetKeyDown(KeyCode.Space) && jumpCount <= maxJump)
+		if (Input.GetKeyDown(KeyCode.Space) && !_freeze)
 		{
-			Jump();
+			// Normal jump
+			if (movementController.collisions.bottom)
+			{
+				Jump();
+			}
+			// Wall jump
+			else if (
+				!movementController.collisions.bottom &&
+				(movementController.collisions.left ||
+				 movementController.collisions.right))
+			{
+				WallJump();
+			}
+			// Normal or airJump
+			else if (doubleJumpCount < maxAirJump && !movementController.collisions.bottom)
+			{
+				DoubleJump();
+			}
 		}
-
-
 	}
 
-	void AnimationFrog()
+	public void Jump()
 	{
-		if (freeze == false)
-		{
-			if (movementController.collisions.left == true || movementController.collisions.right == true)
-			{
-				PlayAnimation("FrogWallJump");
-			}
-			else if (velocity.y <= timeToMaxJump && movementController.collisions.bottom != true)
-			{
-				PlayAnimation("FrogFall");
-			}
-
-			else if (velocity.y != 0 && jumpCount > 1)
-			{
-				PlayAnimation("FrogDoubleJump");
-			}
-
-			else if (velocity.x != 0 && velocity.y != 0)
-			{
-				PlayAnimation("FrogJump");
-			}
-
-			else if (velocity.x != 0)
-			{
-				PlayAnimation("FrogRun");
-			}
-
-			else if (velocity.y != 0)
-			{
-				animator.Play("FrogJump");
-			}
-
-			else
-			{
-				animator.Play("FrogIdle");
-			}
-		}
+		velocity.y = jumpForce;
 	}
 
-	void PlayAnimation(string AnimationName)
+	void WallJump()
 	{
-		if (velocity.x > 0)
-		{
-			transform.localScale = new Vector3(1, 1, 1);
-		}
-		else if (velocity.x < 0)
-		{
-			transform.localScale = new Vector3(-1, 1, 1);
-		}
-		animator.Play(AnimationName);
+		int direction = movementController.collisions.left ? 1 : -1;
+		velocity.x = maxSpeed * direction;
+		Jump();
 	}
 
+	void DoubleJump()
+	{
+		StartCoroutine(DoubleJumpCoroutine());
+	}
+
+	IEnumerator DoubleJumpCoroutine()
+	{
+		Jump();
+		doubleJumpCount++;
+		doubleJumping = true;
+		anim.Play("FrogDoubleJump");
+
+		while (!anim.GetCurrentAnimatorStateInfo(0).IsName("FrogDoubleJump"))
+		{
+			yield return null;
+		}
+
+		while (true)
+		{
+			if (!anim.GetCurrentAnimatorStateInfo(0).IsName("FrogDoubleJump") ||
+				movementController.collisions.bottom)
+				break;
+			yield return null;
+		}
+		doubleJumping = false;
+	}
 
 	private void OnTriggerEnter2D(Collider2D collision)
 	{
@@ -187,25 +290,36 @@ public class Player : MonoBehaviour
 
 		if (enemy != null)
 		{
-			hitEnemy = StartCoroutine(HitEnemyCoroutine());
-
+			HitEnemy(enemy);
 		}
-
 	}
 
-	IEnumerator HitEnemyCoroutine()
+	Coroutine hitEnemy;
+	void HitEnemy(Enemy enemy)
 	{
-
-		freeze = true;
-		animator.Play("FrogHit");
-		yield return new WaitForSeconds(2); //animationsTimes.GetTime("FrogHit")
-		SpawnPlayer spawnPlayer = FindObjectOfType<SpawnPlayer>();
-		spawnPlayer.Spawn();
-		Destroy(gameObject);
-		hitEnemy = null;
-		freeze = false;
-		yield return null;
+		if (hitEnemy == null)
+			hitEnemy = StartCoroutine(HitEnemyCoroutine(enemy));
 	}
 
-	
+	IEnumerator HitEnemyCoroutine(Enemy enemy)
+	{
+		yield return new WaitForEndOfFrame();
+
+		if (enemy.dangerous)
+		{
+			velocity.x = enemy.pushBackForce * Mathf.Sign(transform.position.x - enemy.transform.position.x);
+			anim.Play("FrogHit");
+			_freeze = true;
+
+			// Wait for the time of the FrogHit animation to be finished
+			yield return new WaitForSeconds(animationTimes.GetTime("FrogHit"));
+
+			SpawnPlayer spawnPlayer = FindObjectOfType<SpawnPlayer>();
+			spawnPlayer.Spawn();
+
+			_freeze = false;
+			Destroy(gameObject);
+		}
+		hitEnemy = null;
+	}
 }

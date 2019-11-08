@@ -8,14 +8,12 @@ public class MovementController : MonoBehaviour
 	public int horizontalRayCount;
 	public int verticalRayCount;
 	public LayerMask layerObstacle;
-	public LayerMask layerOneWayPlatform;
 	public Collisions collisions;
 
 	float skinWidth;
 	float pitDistance;
 
 	BoxCollider2D boxCollider;
-	List<Collider2D> boxTempCollider = new List<Collider2D>();
 	Vector2 bottomLeft, bottomRight, topLeft, topRight;
 
 	float verticalRaySpacing;
@@ -23,12 +21,14 @@ public class MovementController : MonoBehaviour
 
 	public struct Collisions
 	{
-		public bool frontPit;
 		public bool top, bottom, left, right;
+		// Est ce que j'ai un ravin en face de moi?
+		public bool frontPit;
 
 		public void Reset()
 		{
 			top = bottom = left = right = false;
+			frontPit = false;
 		}
 	}
 
@@ -55,14 +55,14 @@ public class MovementController : MonoBehaviour
 			HorizontalMove(ref velocity);
 		if (velocity.y != 0)
 			VerticalMove(ref velocity);
-		DetectFrontPid(velocity);
+
+		DetectFrontPit(velocity);
+
 		transform.Translate(velocity);
 	}
 
 	void HorizontalMove(ref Vector2 velocity)
 	{
-		// XXX brique sort du mur, reassign valeur de distance dans le boucle
-
 		float direction = Mathf.Sign(velocity.x);
 		float distance = Mathf.Abs(velocity.x) + skinWidth;
 
@@ -72,8 +72,7 @@ public class MovementController : MonoBehaviour
 		{
 			Vector2 origin = baseOrigin + new Vector2(0, verticalRaySpacing * i);
 
-			//Debug.DrawLine(origin, origin + new Vector2(direction * 1, 0));
-			Debug.DrawLine(origin, origin + new Vector2(direction * distance, 0));
+			//Debug.DrawLine(origin, origin + new Vector2(direction * distance, 0));
 			RaycastHit2D hit = Physics2D.Raycast(
 				origin,
 				new Vector2(direction, 0),
@@ -93,26 +92,8 @@ public class MovementController : MonoBehaviour
 					else if (direction > 0)
 						collisions.right = true;
 				}
-
 			}
 		}
-	}
-
-	void DetectFrontPid(Vector2 velocity)
-	{
-		Vector2 origin = velocity.x > 0 ? bottomRight : bottomLeft;
-		RaycastHit2D hit = Physics2D.Raycast(
-			origin,
-			Vector2.down,
-			pitDistance,
-			layerObstacle
-			);
-
-		if (!hit)
-		{
-			collisions.frontPit = true;
-		}
-
 	}
 
 	void VerticalMove(ref Vector2 velocity)
@@ -126,7 +107,7 @@ public class MovementController : MonoBehaviour
 		{
 			Vector2 origin = baseOrigin + new Vector2(horizontalRaySpacing * i, 0);
 
-			Debug.DrawLine(origin, origin + new Vector2(0, direction * distance));
+			//Debug.DrawLine(origin, origin + new Vector2(0, direction * distance));
 			RaycastHit2D hit = Physics2D.Raycast(
 				origin,
 				new Vector2(0, direction),
@@ -136,11 +117,9 @@ public class MovementController : MonoBehaviour
 
 			if (hit)
 			{
-				// Je ne suis PAS en train de passer à travers un layer onewayplatform
+				// Je ne suis PAS en train de passer à travers un layer onewayplatform vers le haut
 				//   donc c'est un obstacle
-				// XXX detecter en utilisant tag ou getcomponent
-
-				/*if (!(layerOneWayPlatform == (layerOneWayPlatform | (1 << hit.transform.gameObject.layer)) &&
+				if (!(hit.transform.gameObject.tag == "oneWayPlatform" &&
 					 direction > 0))
 				{
 					velocity.y = (hit.distance - skinWidth) * direction;
@@ -150,35 +129,26 @@ public class MovementController : MonoBehaviour
 						collisions.bottom = true;
 					else if (direction > 0)
 						collisions.top = true;
-				}*/
-
-
-				if (Input.GetKey(KeyCode.S) && hit.transform.gameObject.tag == "oneWayPlatform")
-				{
-
-					hit.collider.enabled = false;
-					boxTempCollider.Add(hit.collider);
 				}
-
-				if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
-				{
-					velocity.y = (hit.distance - skinWidth) * direction;
-					distance = hit.distance - skinWidth;
-
-					if (direction < 0)
-						collisions.bottom = true;
-					else if (direction > 0)
-						collisions.top = true;
-				}
-				if (hit.transform.gameObject.tag == "obstacle")
-				{
-					foreach (Collider2D collider in boxTempCollider)
-					{
-						collider.enabled = true;
-					}
-				}
-
 			}
+		}
+	}
+
+	void DetectFrontPit(Vector2 velocity)
+	{
+		Vector2 origin = velocity.x > 0 ? bottomRight : bottomLeft;
+
+		//Debug.DrawLine(origin, origin + Vector2.down * pitDistance);
+		RaycastHit2D hit = Physics2D.Raycast(
+			origin,
+			Vector2.down,
+			pitDistance,
+			layerObstacle
+			);
+
+		if (!hit)
+		{
+			collisions.frontPit = true;
 		}
 	}
 
