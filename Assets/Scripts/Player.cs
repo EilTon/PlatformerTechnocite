@@ -13,7 +13,7 @@ public class Player : MonoBehaviour
 	int jumpCount;
 	public int maxJump;
 	Animator animator;
-
+	Coroutine hitEnemy;
 	[Tooltip("Unity value of max jump height")]
 	public float jumpHeight;
 	[Tooltip("Time in seconds to reach the jump height")]
@@ -21,11 +21,12 @@ public class Player : MonoBehaviour
 	[Tooltip("Can i change direction in air?")]
 	[Range(0, 1)]
 	public float airControl;
-
+	bool freeze = false;
 	float gravity;
 	float jumpForce;
 	float maxFallingSpeed;
 	int horizontal = 0;
+	AnimationsTimes animationsTimes;
 
 	Vector2 velocity = new Vector2();
 	MovementController movementController;
@@ -41,10 +42,9 @@ public class Player : MonoBehaviour
 		// a = 2s / t²
 		acceleration = (2f * maxSpeed) / Mathf.Pow(timeToMaxSpeed, 2);
 		animator = GetComponent<Animator>();
-		Debug.Log(acceleration);
 		minSpeedThreshold = acceleration / Application.targetFrameRate * 2f;
 		movementController = GetComponent<MovementController>();
-
+		animationsTimes = GetComponent<AnimationsTimes>();
 		// Math calculation for gravity and jumpForce
 		gravity = -(2 * jumpHeight) / Mathf.Pow(timeToMaxJump, 2);
 		jumpForce = Mathf.Abs(gravity) * timeToMaxJump;
@@ -59,12 +59,12 @@ public class Player : MonoBehaviour
 
 		horizontal = 0;
 
-		if (Input.GetKey(KeyCode.D))
+		if (Input.GetKey(KeyCode.D) && freeze == false)
 		{
 			horizontal += 1;
 		}
 
-		if (Input.GetKey(KeyCode.Q))
+		if (Input.GetKey(KeyCode.Q)&& freeze == false)
 		{
 			horizontal -= 1;
 		}
@@ -109,12 +109,12 @@ public class Player : MonoBehaviour
 			jumpCount = 0;
 			velocity.y = jumpForce;
 		}
-		
+
 	}
 
 	void UpdateJump()
 	{
-		if (movementController.collisions.bottom)
+		if (movementController.collisions.bottom || movementController.collisions.left || movementController.collisions.right)
 		{
 			jumpCount = 0;
 		}
@@ -124,43 +124,46 @@ public class Player : MonoBehaviour
 			Jump();
 		}
 
-		
+
 	}
 
 	void AnimationFrog()
 	{
-		if(movementController.collisions.left == true || movementController.collisions.right == true)
+		if (freeze == false)
 		{
-			PlayAnimation("FrogWallJump");
-		}
-		else if(velocity.y <= timeToMaxJump && movementController.collisions.bottom!= true)
-		{
-			PlayAnimation("FrogFall");
-		}
+			if (movementController.collisions.left == true || movementController.collisions.right == true)
+			{
+				PlayAnimation("FrogWallJump");
+			}
+			else if (velocity.y <= timeToMaxJump && movementController.collisions.bottom != true)
+			{
+				PlayAnimation("FrogFall");
+			}
 
-		else if(velocity.y!=0 && jumpCount>1)
-		{
-			PlayAnimation("FrogDoubleJump");
-		}
+			else if (velocity.y != 0 && jumpCount > 1)
+			{
+				PlayAnimation("FrogDoubleJump");
+			}
 
-		else if (velocity.x != 0 && velocity.y != 0)
-		{
-			PlayAnimation("FrogJump");
-		}
+			else if (velocity.x != 0 && velocity.y != 0)
+			{
+				PlayAnimation("FrogJump");
+			}
 
-		else if (velocity.x != 0)
-		{
-			PlayAnimation("FrogRun");
-		}
+			else if (velocity.x != 0)
+			{
+				PlayAnimation("FrogRun");
+			}
 
-		else if (velocity.y != 0)
-		{
-			animator.Play("FrogJump");
-		}
+			else if (velocity.y != 0)
+			{
+				animator.Play("FrogJump");
+			}
 
-		else
-		{
-			animator.Play("FrogIdle");
+			else
+			{
+				animator.Play("FrogIdle");
+			}
 		}
 	}
 
@@ -175,5 +178,31 @@ public class Player : MonoBehaviour
 			transform.localScale = new Vector3(-1, 1, 1);
 		}
 		animator.Play(AnimationName);
+	}
+
+
+	private void OnTriggerEnter2D(Collider2D collision)
+	{
+		Enemy enemy = collision.gameObject.GetComponent<Enemy>();
+		if (enemy != null)
+		{
+			hitEnemy = StartCoroutine(HitEnemyCoroutine());
+
+		}
+
+	}
+
+	IEnumerator HitEnemyCoroutine()
+	{
+		freeze = true;
+		animator.Play("FrogHit");
+		movementController.Move(-velocity * Time.deltaTime);
+		yield return new WaitForSeconds(2); //animationsTimes.GetTime("FrogHit")
+		SpawnPlayer spawnPlayer = FindObjectOfType<SpawnPlayer>();
+		spawnPlayer.Spawn();
+		Destroy(gameObject);
+		hitEnemy = null;
+		freeze = false;
+		yield return null;
 	}
 }

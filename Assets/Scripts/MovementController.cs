@@ -12,9 +12,10 @@ public class MovementController : MonoBehaviour
 	public Collisions collisions;
 
 	float skinWidth;
+	float pitDistance;
 
 	BoxCollider2D boxCollider;
-	Collider2D boxTempCollider;
+	List<Collider2D> boxTempCollider = new List<Collider2D>();
 	Vector2 bottomLeft, bottomRight, topLeft, topRight;
 
 	float verticalRaySpacing;
@@ -22,6 +23,7 @@ public class MovementController : MonoBehaviour
 
 	public struct Collisions
 	{
+		public bool frontPit;
 		public bool top, bottom, left, right;
 
 		public void Reset()
@@ -35,6 +37,7 @@ public class MovementController : MonoBehaviour
 	{
 		boxCollider = GetComponent<BoxCollider2D>();
 		skinWidth = 1 / 16f;
+		pitDistance = 0.5f;
 		CalculateRaySpacings();
 	}
 
@@ -52,7 +55,7 @@ public class MovementController : MonoBehaviour
 			HorizontalMove(ref velocity);
 		if (velocity.y != 0)
 			VerticalMove(ref velocity);
-
+		DetectFrontPid(velocity);
 		transform.Translate(velocity);
 	}
 
@@ -95,6 +98,22 @@ public class MovementController : MonoBehaviour
 		}
 	}
 
+	void DetectFrontPid(Vector2 velocity)
+	{
+		Vector2 origin = velocity.x > 0 ? bottomRight : bottomLeft;
+		RaycastHit2D hit = Physics2D.Raycast(
+			origin,
+			Vector2.down,
+			pitDistance,
+			layerObstacle
+			);
+
+		if (!hit)
+		{
+			collisions.frontPit = true;
+		}
+
+	}
 
 	void VerticalMove(ref Vector2 velocity)
 	{
@@ -136,26 +155,29 @@ public class MovementController : MonoBehaviour
 
 				if (Input.GetKey(KeyCode.S) && hit.transform.gameObject.tag == "oneWayPlatform")
 				{
-					
+
 					hit.collider.enabled = false;
-					boxTempCollider = hit.collider;
+					boxTempCollider.Add(hit.collider);
 				}
 
 				if (!(hit.transform.gameObject.tag == "oneWayPlatform" && direction > 0))
 				{
 					velocity.y = (hit.distance - skinWidth) * direction;
 					distance = hit.distance - skinWidth;
-					
+
 					if (direction < 0)
 						collisions.bottom = true;
 					else if (direction > 0)
 						collisions.top = true;
 				}
-				if(hit.transform.gameObject.tag == "obstacle")
+				if (hit.transform.gameObject.tag == "obstacle")
 				{
-					boxTempCollider.enabled = true;
+					foreach (Collider2D collider in boxTempCollider)
+					{
+						collider.enabled = true;
+					}
 				}
-				
+
 			}
 		}
 	}
